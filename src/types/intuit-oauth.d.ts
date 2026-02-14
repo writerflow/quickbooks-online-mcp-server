@@ -23,7 +23,7 @@ declare module 'intuit-oauth' {
     authorizeUri(options: {
       scope: string[];
       state: string;
-    }): { url: string };
+    }): string;
 
     createToken(url: string): Promise<{
       token: {
@@ -35,9 +35,20 @@ declare module 'intuit-oauth' {
     }>;
 
     refreshToken(): Promise<any>;
-    refreshUsingToken(refreshToken: string): Promise<{ token: { access_token: string, expires_in: number } }>;
+    refreshUsingToken(refreshToken: string): Promise<{
+      token: {
+        access_token: string;
+        refresh_token: string;
+        expires_in: number;
+      }
+    }>;
     revoke(options: { token: string }): Promise<any>;
-
-    // Add more methods as needed
+    isAccessTokenValid(): boolean;
+    setAuthorizeURLs(params: {
+      authorize_endpoint: string;
+      token_endpoint: string;
+      revoke_endpoint: string;
+      userinfo_endpoint?: string;
+    }): void;
   }
 }
