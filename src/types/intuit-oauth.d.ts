@@ -45,10 +45,10 @@ declare module 'intuit-oauth' {
     revoke(options: { token: string }): Promise<any>;
     isAccessTokenValid(): boolean;
     setAuthorizeURLs(params: {
-      authorize_endpoint: string;
-      token_endpoint: string;
-      revoke_endpoint: string;
-      userinfo_endpoint?: string;
+      authorizeEndpoint: string;
+      tokenEndpoint: string;
+      revokeEndpoint: string;
+      userInfoEndpoint?: string;
     }): void;
   }
 }

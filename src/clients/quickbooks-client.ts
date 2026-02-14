@@ -101,10 +101,10 @@ class QuickbooksClient {
       this.discoveryDocument = doc;
 
       this.oauthClient.setAuthorizeURLs({
-        authorize_endpoint: doc.authorization_endpoint,
-        token_endpoint: doc.token_endpoint,
-        revoke_endpoint: doc.revocation_endpoint,
-        userinfo_endpoint: doc.userinfo_endpoint,
+        authorizeEndpoint: doc.authorization_endpoint,
+        tokenEndpoint: doc.token_endpoint,
+        revokeEndpoint: doc.revocation_endpoint,
+        userInfoEndpoint: doc.userinfo_endpoint,
       });
     } catch (error) {
       // Fall back to SDK defaults — log but don't fail
@@ -230,8 +230,15 @@ class QuickbooksClient {
           state: csrfState,
         });
 
+        // Log the URL in case browser doesn't open automatically
+        console.error(`[QBO] Authorize URL: ${authUri}`);
+
         // Open browser automatically
-        await open(authUri);
+        try {
+          await open(authUri);
+        } catch (err) {
+          console.error('[QBO] Could not open browser automatically. Please open the URL above manually.');
+        }
       });
 
       // Handle server errors
