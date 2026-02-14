@@ -23,7 +23,20 @@ export function formatError(error: unknown): string {
     return `Error: ${error.message}${tidSuffix}`;
   } else if (typeof error === 'string') {
     return `Error: ${error}${tidSuffix}`;
+  } else if (error && typeof error === 'object') {
+    // Extract only safe fields — avoid serializing tokens/credentials
+    const safe = (error as any).message ?? (error as any).code ?? (error as any).statusCode;
+    if (safe) {
+      return `Error: ${safe}${tidSuffix}`;
+    }
+    // Fault response from QBO API
+    const fault = (error as any).Fault;
+    if (fault) {
+      const details = fault.Error?.map?.((e: any) => e.Message || e.Detail).join('; ') ?? 'Unknown QBO fault';
+      return `Error: ${details}${tidSuffix}`;
+    }
+    return `Unknown error occurred${tidSuffix}`;
   } else {
-    return `Unknown error: ${JSON.stringify(error)}${tidSuffix}`;
+    return `Unknown error occurred${tidSuffix}`;
   }
 }

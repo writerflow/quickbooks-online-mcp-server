@@ -9,8 +9,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import open from 'open';
 
-// Global axios interceptor to capture intuit_tid from all QBO API responses
-axios.interceptors.response.use(
+// Dedicated axios instance for QBO API calls — avoids polluting the global instance
+const qboAxios = axios.create();
+qboAxios.interceptors.response.use(
   (response) => {
     const intuitTid = response.headers?.['intuit_tid'];
     if (intuitTid) {
@@ -152,6 +153,7 @@ class QuickbooksClient {
                 </html>
               `);
               setTimeout(() => {
+                clearTimeout(oauthTimeout);
                 server.close();
                 this.isAuthenticating = false;
                 reject(new Error('OAuth CSRF state mismatch'));
@@ -191,6 +193,7 @@ class QuickbooksClient {
 
             // Close server after a short delay
             setTimeout(() => {
+              clearTimeout(oauthTimeout);
               server.close();
               this.isAuthenticating = false;
               resolve();
@@ -215,14 +218,22 @@ class QuickbooksClient {
                 </body>
               </html>
             `);
+            clearTimeout(oauthTimeout);
             this.isAuthenticating = false;
             reject(error);
           }
         }
       });
 
-      // Start server
-      server.listen(port, async () => {
+      // Auto-close after 5 minutes if OAuth flow is never completed
+      const oauthTimeout = setTimeout(() => {
+        server.close();
+        this.isAuthenticating = false;
+        reject(new Error('OAuth flow timed out after 5 minutes'));
+      }, 5 * 60 * 1000);
+
+      // Start server on loopback only
+      server.listen(port, '127.0.0.1', async () => {
 
         // Generate authorization URL with CSRF-safe state
         const authUri = this.oauthClient.authorizeUri({
@@ -244,6 +255,7 @@ class QuickbooksClient {
       // Handle server errors
       server.on('error', (error) => {
         console.error('Server error:', error);
+        clearTimeout(oauthTimeout);
         this.isAuthenticating = false;
         reject(error);
       });
@@ -267,7 +279,7 @@ class QuickbooksClient {
     if (this.refreshToken) updateEnvVar('QUICKBOOKS_REFRESH_TOKEN', this.refreshToken);
     if (this.realmId) updateEnvVar('QUICKBOOKS_REALM_ID', this.realmId);
 
-    fs.writeFileSync(tokenPath, envLines.join('\n'));
+    fs.writeFileSync(tokenPath, envLines.join('\n'), { mode: 0o600 });
   }
 
   private extractErrorCode(error: any): string | undefined {
